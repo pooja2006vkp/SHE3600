@@ -4,7 +4,7 @@ import firebase_admin
 from firebase_admin import credentials, firestore, auth
 import google.generativeai as genai
 import os
-from dotenv import load_dotenv
+from dotenv import load_dotenv 
 import datetime
 
 # Load environment variables
@@ -37,6 +37,11 @@ model = genai.GenerativeModel('gemini-1.5-flash')
 
 # Categories
 CATEGORIES = ['finance', 'skincare', 'menstrual', 'sexual', 'mental', 'safety', 'self-defense']
+
+@app.route('/healthz')
+def healthz():
+    return {"status": "ok"}
+
 
 @app.route('/')
 def home():
