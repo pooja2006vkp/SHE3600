@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}{{ article.title }} — She360{% endblock %}
+
+{% block content %}
+<section class="article-hero">
+  <div class="container narrow">
+    <div class="article-meta-top">
+      <a href="/" class="back-link">← Back to articles</a>
+      <span class="card-badge">{{ article.category|capitalize }}</span>
+    </div>
+    <h1 class="article-title">{{ article.title }}</h1>
+    {% if article.introduction %}
+    <p class="article-intro">{{ article.introduction }}</p>
+    {% endif %}
+    <div class="article-meta">
+      <span>👁 {{ article.views or 0 }} views</span>
+      <span>·</span>
+      <span>{{ article.tone|capitalize if article.tone else 'Educational' }} tone</span>
+    </div>
+  </div>
+</section>
+
+<section class="article-body">
+  <div class="container narrow">
+    <div class="article-content">
+      {{ article.content | replace('\n', '<br>') | safe }}
+    </div>
+
+    {% if article.tips %}
+    <div class="tips-box">
+      <h3>💡 Key Takeaways</h3>
+      <ul>
+        {% for tip in article.tips %}
+        <li>{{ tip }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    {% if article.conclusion %}
+    <div class="article-conclusion">
+      <p>{{ article.conclusion }}</p>
+    </div>
+    {% endif %}
+
+    <div class="article-actions">
+      <button class="btn-outline" onclick="bookmarkArticle('{{ article.id }}', '{{ article.title|replace("'", "\\'") }}')">
+        🔖 Save Article
+      </button>
+      <a href="/" class="btn-primary">Explore More</a>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  async function bookmarkArticle(id, title) {
+    const res = await fetch('/api/bookmark', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ article_id: id, title })
+    });
+    const data = await res.json();
+    if (data.success) alert('Article saved to your dashboard!');
+    else if (res.status === 401) window.location.href = '/login';
+    else alert(data.error || 'Could not save article.');
+  }
+</script>
+{% endblock %}

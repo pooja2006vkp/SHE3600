@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Admin — She360{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+  <div class="container">
+    <div class="admin-header">
+      <h1>Admin Panel</h1>
+      <p>Generate and manage articles with AI.</p>
+    </div>
+
+    <!-- Generate Article -->
+    <div class="admin-card">
+      <h2>✨ Generate New Article</h2>
+      <div class="gen-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Topic</label>
+            <input type="text" id="genTopic" placeholder="e.g. Managing period pain naturally" />
+          </div>
+          <div class="form-group">
+            <label>Category</label>
+            <select id="genCategory">
+              {% for cat in categories %}
+              <option value="{{ cat }}">{{ cat|capitalize }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Tone</label>
+            <select id="genTone">
+              <option value="educational">Educational</option>
+              <option value="empowering">Empowering</option>
+              <option value="friendly">Friendly</option>
+              <option value="clinical">Clinical</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn-primary" onclick="generateArticle()" id="genBtn">Generate Article</button>
+        <p id="genStatus" class="gen-status"></p>
+      </div>
+    </div>
+
+    <!-- Articles Table -->
+    <div class="admin-card">
+      <h2>All Articles ({{ articles|length }})</h2>
+      {% if articles %}
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Category</th>
+              <th>Views</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="articlesTable">
+            {% for article in articles %}
+            <tr id="row-{{ article.id }}">
+              <td><a href="/article/{{ article.id }}">{{ article.title }}</a></td>
+              <td><span class="card-badge sm">{{ article.category|capitalize }}</span></td>
+              <td>{{ article.views or 0 }}</td>
+              <td>
+                <button class="btn-danger sm" onclick="deleteArticle('{{ article.id }}', this)">Delete</button>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+        <div class="empty-state"><p>No articles yet. Generate your first one above!</p></div>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  async function generateArticle() {
+    const topic = document.getElementById('genTopic').value.trim();
+    const category = document.getElementById('genCategory').value;
+    const tone = document.getElementById('genTone').value;
+    const btn = document.getElementById('genBtn');
+    const status = document.getElementById('genStatus');
+
+    if (!topic) { status.textContent = 'Please enter a topic.'; return; }
+
+    btn.disabled = true;
+    btn.textContent = 'Generating…';
+    status.textContent = 'AI is writing your article, this may take 15–30 seconds…';
+
+    try {
+      const res = await fetch('/api/generate-article', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic, category, tone })
+      });
+      const data = await res.json();
+      if (data.success) {
+        status.textContent = '✅ Article generated! Refreshing…';
+        setTimeout(() => location.reload(), 1500);
+      } else {
+        status.textContent = '❌ Error: ' + data.error;
+      }
+    } catch (e) {
+      status.textContent = '❌ Network error. Please try again.';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Generate Article';
+    }
+  }
+
+  async function deleteArticle(id, btn) {
+    if (!confirm('Delete this article?')) return;
+    const res = await fetch(`/api/article/${id}`, { method: 'DELETE' });
+    if (res.ok) {
+      document.getElementById(`row-${id}`).remove();
+    } else {
+      alert('Failed to delete article.');
+    }
+  }
+</script>
+{% endblock %}

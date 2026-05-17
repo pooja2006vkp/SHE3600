@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}Sign In — She360{% endblock %}
+
+{% block content %}
+<section class="auth-section">
+  <div class="auth-card">
+    <a href="/" class="auth-logo">She<span>360</span></a>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchTab('login', this)">Sign In</button>
+      <button class="auth-tab" onclick="switchTab('signup', this)">Create Account</button>
+    </div>
+
+    <div id="loginForm" class="auth-form">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="loginEmail" placeholder="you@example.com" />
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="loginPassword" placeholder="••••••••" />
+      </div>
+      <p id="loginError" class="form-error"></p>
+      <button class="btn-primary full" onclick="doLogin()">Sign In</button>
+    </div>
+
+    <div id="signupForm" class="auth-form hidden">
+      <div class="form-group">
+        <label>Name</label>
+        <input type="text" id="signupName" placeholder="Your name" />
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="signupEmail" placeholder="you@example.com" />
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="signupPassword" placeholder="Min. 6 characters" />
+      </div>
+      <p id="signupError" class="form-error"></p>
+      <button class="btn-primary full" onclick="doSignup()">Create Account</button>
+    </div>
+  </div>
+</section>
+
+<script id="fbConfig" type="application/json">{{ firebase_web_config | tojson }}</script>
+{% endblock %}
+
+{% block scripts %}
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword }
+    from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+  const cfg = JSON.parse(document.getElementById('fbConfig').textContent);
+  const firebaseApp = initializeApp(cfg);
+  const fbAuth = getAuth(firebaseApp);
+
+  function friendlyError(code) {
+    const map = {
+      'auth/invalid-email': 'Invalid email address.',
+      'auth/user-not-found': 'No account found with this email.',
+      'auth/wrong-password': 'Incorrect password.',
+      'auth/email-already-in-use': 'An account with this email already exists.',
+      'auth/weak-password': 'Password must be at least 6 characters.',
+    };
+    return map[code] || 'Something went wrong. Please try again.';
+  }
+
+  window.doLogin = async function() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const errEl = document.getElementById('loginError');
+    errEl.textContent = '';
+    try {
+      const cred = await signInWithEmailAndPassword(fbAuth, email, password);
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ uid: cred.user.uid })
+      });
+      const data = await res.json();
+      if (data.success) window.location.href = '/dashboard';
+      else errEl.textContent = 'Login failed. Please try again.';
+    } catch (e) { errEl.textContent = friendlyError(e.code); }
+  };
+
+  window.doSignup = async function() {
+    const name = document.getElementById('signupName').value.trim();
+    const email = document.getElementById('signupEmail').value.trim();
+    const password = document.getElementById('signupPassword').value;
+    const errEl = document.getElementById('signupError');
+    errEl.textContent = '';
+    try {
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ name, email, password })
+      });
+      const data = await res.json();
+      if (data.success) {
+        const cred = await signInWithEmailAndPassword(fbAuth, email, password);
+        await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ uid: cred.user.uid })
+        });
+        window.location.href = '/dashboard';
+      } else errEl.textContent = data.error;
+    } catch (e) { errEl.textContent = friendlyError(e.code); }
+  };
+</script>
+
+<script>
+  function switchTab(tab, el) {
+    document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('loginForm').classList.toggle('hidden', tab !== 'login');
+    document.getElementById('signupForm').classList.toggle('hidden', tab !== 'signup');
+  }
+</script>
+{% endblock %}

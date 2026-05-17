@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}She360 — Women's Wellness & Knowledge Hub{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <div class="hero-inner">
+    <p class="hero-eyebrow">Your trusted resource</p>
+    <h1>Knowledge that<br /><em>empowers</em> every woman</h1>
+    <p class="hero-sub">Explore expert-written articles on finance, health, safety, skincare, and more — designed for you.</p>
+    <div class="hero-actions">
+      <a href="#articles" class="btn-primary">Explore Articles</a>
+      <a href="/login" class="btn-outline">Join the Community</a>
+    </div>
+  </div>
+  <div class="hero-orbs">
+    <div class="orb orb1"></div>
+    <div class="orb orb2"></div>
+    <div class="orb orb3"></div>
+  </div>
+</section>
+
+<!-- Category Pills -->
+<section class="categories-bar" id="articles">
+  <div class="container">
+    <div class="category-pills">
+      <button class="pill active" onclick="filterCategory('', this)">All</button>
+      {% for cat in categories %}
+      <button class="pill" onclick="filterCategory('{{ cat }}', this)">{{ cat|capitalize }}</button>
+      {% endfor %}
+    </div>
+    <div class="search-wrap">
+      <input type="text" id="searchInput" placeholder="Search articles…" oninput="searchArticles()" />
+    </div>
+  </div>
+</section>
+
+<!-- Articles Grid -->
+<section class="articles-section">
+  <div class="container">
+    <div class="articles-grid" id="articlesGrid">
+      {% if articles %}
+        {% for article in articles %}
+        <article class="card" data-category="{{ article.category }}">
+          <div class="card-badge">{{ article.category|capitalize }}</div>
+          <h2 class="card-title">{{ article.title }}</h2>
+          <p class="card-intro">{{ (article.introduction or article.content or '')[:160] }}…</p>
+          <div class="card-footer">
+            <span class="card-views">👁 {{ article.views or 0 }} views</span>
+            <a href="/article/{{ article.id }}" class="card-link">Read more →</a>
+          </div>
+        </article>
+        {% endfor %}
+      {% else %}
+        <div class="empty-state">
+          <p>No articles yet. <a href="/admin">Add the first one →</a></p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  let currentCategory = '';
+
+  function filterCategory(cat, el) {
+    currentCategory = cat;
+    document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    fetchArticles();
+  }
+
+  function searchArticles() {
+    fetchArticles();
+  }
+
+  async function fetchArticles() {
+    const search = document.getElementById('searchInput').value;
+    const params = new URLSearchParams();
+    if (currentCategory) params.append('category', currentCategory);
+    if (search) params.append('search', search);
+
+    const res = await fetch('/api/articles?' + params.toString());
+    const articles = await res.json();
+    const grid = document.getElementById('articlesGrid');
+
+    if (!articles.length) {
+      grid.innerHTML = '<div class="empty-state"><p>No articles found.</p></div>';
+      return;
+    }
+
+    grid.innerHTML = articles.map(a => `
+      <article class="card" data-category="${a.category}">
+        <div class="card-badge">${capitalize(a.category)}</div>
+        <h2 class="card-title">${a.title}</h2>
+        <p class="card-intro">${((a.introduction || a.content || '').substring(0, 160))}…</p>
+        <div class="card-footer">
+          <span class="card-views">👁 ${a.views || 0} views</span>
+          <a href="/article/${a.id}" class="card-link">Read more →</a>
+        </div>
+      </article>
+    `).join('');
+  }
+
+  function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+</script>
+{% endblock %}

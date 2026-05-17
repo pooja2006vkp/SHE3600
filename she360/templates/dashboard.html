@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}My Dashboard — She360{% endblock %}
+
+{% block content %}
+<section class="dashboard-section">
+  <div class="container">
+    <div class="dashboard-header">
+      <h1>My Dashboard</h1>
+      <p>Your saved articles and reading history.</p>
+    </div>
+
+    <div class="dashboard-grid">
+      <aside class="dashboard-sidebar">
+        <div class="sidebar-card">
+          <h3>Quick Links</h3>
+          <nav class="sidebar-nav">
+            <a href="/">← Browse Articles</a>
+            <a href="/admin">Admin Panel</a>
+          </nav>
+        </div>
+        <div class="sidebar-card stat-card">
+          <p class="stat-num">{{ bookmarks|length }}</p>
+          <p class="stat-label">Saved Articles</p>
+        </div>
+      </aside>
+
+      <div class="dashboard-main">
+        <h2>Saved Articles</h2>
+        {% if bookmarks %}
+          <div class="bookmark-list">
+            {% for bm in bookmarks %}
+            <div class="bookmark-item" id="bm-{{ bm.id }}">
+              <p class="bookmark-title">{{ bm.article_title }}</p>
+              <div class="bookmark-actions">
+                <a href="/article/{{ bm.article_id }}" class="btn-outline sm">Read</a>
+                <button class="btn-danger sm" onclick="removeBookmark('{{ bm.id }}')">Remove</button>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-state">
+            <p>You haven't saved any articles yet.</p>
+            <a href="/" class="btn-primary">Explore Articles</a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  async function removeBookmark(id) {
+    const res = await fetch(`/api/bookmark/${id}`, { method: 'DELETE' });
+    if (res.ok) document.getElementById(`bm-${id}`).remove();
+  }
+</script>
+{% endblock %}
